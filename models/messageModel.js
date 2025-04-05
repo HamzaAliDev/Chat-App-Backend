@@ -8,12 +8,11 @@ const messageSchema = new mongoose.Schema({
         type: String,
     },
     senderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        type: String,
+
     },
     receiverId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        type: String,
     },
 }, { timestamps: true });
 

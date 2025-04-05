@@ -1,11 +1,13 @@
 import User from "../models/userModel.js";
 import Message from "../models/messageModel.js";
-// import { getReceiverSocketId, io } from "../lib/socket.js";
+import { getReceiverSocketId , io } from "../config/socket.js";
 
 export const getUsersForSidebar = async (req, res) => {
     try {
-        const loggedInUserId = req.user._id;
-        const filteredUsers = await User.find({ _id: { $ne: loggedInUserId } }).select("-password");
+        const loggedInUserId = req.query.loggedInUserId;
+        // console.log("req.query: ", req.query);  
+        // console.log("Logged in user ID: ", loggedInUserId);
+        const filteredUsers = await User.find({ clerkId: { $ne: loggedInUserId } }).select("-password");
 
         res.status(200).json({
             data: filteredUsers,
@@ -20,8 +22,10 @@ export const getUsersForSidebar = async (req, res) => {
 
 export const getMessages = async (req, res) => {
     try {
-        const { id: userToChatId } = req.params;
-        const myId = req.user._id;
+        const userToChatId = req.query.selectedUserId;
+        const myId = req.query.authUserId;
+        // const myId = req.user._id;
+        // console.log("req.query: ", req.query);
 
         const messages = await Message.find({
             $or: [
@@ -43,25 +47,26 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
     try {
-        const { text, imageUrl } = req.body;
-        const { id: receiverId } = req.params;
-        const senderId = req.user._id;
+        const { text, media } = req.body;
+        const  receiverId  = req.query.selectedUserId;
+        const senderId = req.query.authUserId;
+        // console.log("req.query: ", req.query);
 
         const newMessage = new Message({
             senderId,
             receiverId,
             text,
-            media: imageUrl,
+            media,
         });
 
         await newMessage.save();
 
-        // const receiverSocketId = getReceiverSocketId(receiverId);
-        // if (receiverSocketId) {
-        //     io.to(receiverSocketId).emit("newMessage", newMessage);
-        // }
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
 
-        res.status(201).json({
+        res.status(200).json({
             data: newMessage,
             error: false,
             message: 'Message sent successfully'
